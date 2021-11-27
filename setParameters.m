@@ -1,4 +1,5 @@
 % (C) Copyright 2020 CPP visual motion localizer developpers
+%adapted by me Iqra 
 
 function [cfg] = setParameters()
 
@@ -6,7 +7,8 @@ function [cfg] = setParameters()
 
     % Initialize the parameters and general configuration variables
     cfg = struct();
-
+    
+    cfg.subject.askGrpSess = [false true];% this stops the GUI input for subject group. comment it if you want to ask for subject group
     % by default the data will be stored in an output folder created where the
     % setParamters.m file is
     % change that if you want the data to be saved somewhere else
@@ -19,14 +21,14 @@ function [cfg] = setParameters()
     cfg.debug.smallWin = false; % To test on a part of the screen, change to 1
     cfg.debug.transpWin = false; % To test with trasparent full size screen
 
-    cfg.skipSyncTests = 0;
+    cfg.skipSyncTests = 1;
 
     cfg.verbose = 1;
 
     %% Engine parameters
 
     cfg.testingDevice = 'mri';
-    cfg.eyeTracker.do = true;
+    cfg.eyeTracker.do = false;
     cfg.audio.do = false;
 
     cfg = setMonitor(cfg);
@@ -36,7 +38,7 @@ function [cfg] = setParameters()
 
     % MRI settings
     cfg = setMRI(cfg);
-    cfg.suffix.acquisition = '0p75mmEvTr2p18';
+    cfg.suffix.acquisition = '';
 
     cfg.pacedByTriggers.do = false;
 
@@ -52,11 +54,11 @@ function [cfg] = setParameters()
     % cfg.design.localizer = 'MT_MST';
 
     cfg.design.motionType = 'translation';
-    cfg.design.motionDirections = [0 0 180 180];
-    cfg.design.names = {'static'; 'motion'};
+    cfg.design.motionDirections = [180 90]; %0:right 180:left 90:up 270:down
+    cfg.design.names = {'motion'; 'static'};
 
-    cfg.design.nbRepetitions = 12;
-    cfg.design.nbEventsPerBlock = 12; % DO NOT CHANGE
+    cfg.design.nbRepetitions = 6; %12 BLOCKS
+    cfg.design.nbEventsPerBlock = 16; % DO NOT CHANGE
 
     %% Timing
 
@@ -66,16 +68,18 @@ function [cfg] = setParameters()
     % IBI
     % block length = (cfg.eventDuration + cfg.ISI) * cfg.design.nbEventsPerBlock
 
-    cfg.timing.eventDuration = 0.79; % second
+    cfg.timing.eventDuration = 0.5; % second %ACTUALLY RUNS FOR 1SEC (double than this)
 
     % Time between blocs in secs
-    cfg.timing.IBI = 0;
+    %cfg.timing.IBI = 5;
+    cfg.timing.IBI = [5.9008    6.6965    6.0444    6.9093    6.2273    6.0206    5.8399    5.2143    6.2263    5.9364    5.4057    0 ];
+    %r = a + (b-a).*rand(N,1); r = 5 + (7-5)*rand(1,11);
     % Time between events in secs
-    cfg.timing.ISI = 0;
+    cfg.timing.ISI = 1;%0.5;
     % Number of seconds before the motion stimuli are presented
-    cfg.timing.onsetDelay = 0;
+    cfg.timing.onsetDelay = 5.25;
     % Number of seconds after the end all the stimuli before ending the run
-    cfg.timing.endDelay = 3.6;
+    cfg.timing.endDelay = 14;
 
     % reexpress those in terms of repetition time
     if cfg.pacedByTriggers.do
@@ -109,11 +113,11 @@ function [cfg] = setParameters()
     % proportion of dots killed per frame
     cfg.dot.proportionKilledPerFrame = 0;
     % Dot Size (dot width) in visual angles.
-    cfg.dot.size = .2;
+    cfg.dot.size = .25;
     cfg.dot.color = cfg.color.white;
 
     % Diameter/length of side of aperture in Visual angles
-    cfg.aperture.type = 'none';
+    cfg.aperture.type = 'circle';
     cfg.aperture.width = []; % if left empty it will take the screen height
     cfg.aperture.xPos = 0;
 
@@ -122,19 +126,23 @@ function [cfg] = setParameters()
     cfg.task.name = 'visual localizer';
 
     % Instruction
-    cfg.task.instruction = '1-Detect the RED fixation cross\n \n\n';
+    cfg.task.instruction = 'Detect the repeated stimulus\n \n\n';
 
     % Fixation cross (in pixels)
     cfg.fixation.type = 'cross';
-    cfg.fixation.colorTarget = cfg.color.red;
+    cfg.fixation.colorTarget = cfg.color.white;
     cfg.fixation.color = cfg.color.white;
     cfg.fixation.width = .25;
     cfg.fixation.lineWidthPix = 3;
     cfg.fixation.xDisplacement = 0;
     cfg.fixation.yDisplacement = 0;
 
-    cfg.target.maxNbPerBlock = 1;
+    % target
+    cfg.target.maxNbPerBlock = 2;
     cfg.target.duration = 0.1; % In secs
+    cfg.target.type = 'static_repeat';  
+    % 'fixation_cross' : the fixation cross changes color
+    % 'static_repeat' : dots are in the same position
 
     cfg.extraColumns = { ...
                         'direction', ...
@@ -153,10 +161,7 @@ end
 
 function cfg = setKeyboards(cfg)
     cfg.keyboard.escapeKey = 'ESCAPE';
-    cfg.keyboard.responseKey = { ...
-                                'r', 'g', 'y', 'b', ...
-                                'd', 'n', 'z', 'e', ...
-                                't'};
+    cfg.keyboard.responseKey = { 'a', 'b', 'c', 'd'};
     cfg.keyboard.keyboard = [];
     cfg.keyboard.responseBox = [];
 
@@ -168,17 +173,29 @@ end
 
 function cfg = setMRI(cfg)
     % letter sent by the trigger to sync stimulation and volume acquisition
-    cfg.mri.triggerKey = 't';
-    cfg.mri.triggerNb = 5;
+    cfg.mri.triggerKey = 's';
+    cfg.mri.triggerNb = 1;
 
-    cfg.mri.repetitionTime = 1.8;
+    cfg.mri.repetitionTime = 1.75;
 
-    cfg.bids.MRI.Instructions = 'Detect the RED fixation cross';
+    cfg.bids.MRI.Instructions = 'Detect the repeated stimulus';
     cfg.bids.MRI.TaskDescription = [];
+    cfg.bids.mri.SliceTiming = [0, 0.9051, 0.0603, 0.9655, 0.1206, 1.0258, 0.181, ...
+                              1.0862, 0.2413, 1.1465, 0.3017, 1.2069, 0.362, ...
+                              1.2672, 0.4224, 1.3275, 0.4827, 1.3879, 0.5431, ...
+                              1.4482, 0.6034, 1.5086, 0.6638, 1.5689, 0.7241, ...
+                              1.6293, 0.7844, 1.6896, 0.8448, 0, 0.9051, 0.0603, ...
+                              0.9655, 0.1206, 1.0258, 0.181, 1.0862, 0.2413, ...
+                              1.1465, 0.3017, 1.2069, 0.362, 1.2672, 0.4224, ...
+                              1.3275, 0.4827, 1.3879, 0.5431, 1.4482, 0.6034, ...
+                              1.5086, 0.6638, 1.5689, 0.7241, 1.6293, 0.7844, ...
+                              1.6896, 0.8448];
 
 end
 
 function cfg = setMonitor(cfg)
+    % text size
+    cfg.text.size = 48;
 
     % Monitor parameters for PTB
     cfg.color.white = [255 255 255];
@@ -190,11 +207,11 @@ function cfg = setMonitor(cfg)
 
     % Monitor parameters
     cfg.screen.monitorWidth = 50; % in cm
-    cfg.screen.monitorDistance = 40; % distance from the screen in cm
+    cfg.screen.monitorDistance = 40; % distance from the screen in cm 
 
     if strcmpi(cfg.testingDevice, 'mri')
-        cfg.screen.monitorWidth = 25;
-        cfg.screen.monitorDistance = 95;
+        cfg.screen.monitorWidth = 69.8; % 25;
+        cfg.screen.monitorDistance = 170; %95;
     end
 
 end

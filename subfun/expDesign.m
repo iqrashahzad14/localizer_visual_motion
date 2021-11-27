@@ -81,7 +81,7 @@ function [cfg] = expDesign(cfg, displayFigs)
     %% Give the blocks the names with condition and design the task in each event
     while 1
 
-        fixationTargets = zeros(NB_BLOCKS, NB_EVENTS_PER_BLOCK);
+        fixationTargets = zeros(NB_BLOCKS, NB_EVENTS_PER_BLOCK/2);%24
 
         for iBlock = 1:NB_BLOCKS
 
@@ -94,9 +94,9 @@ function [cfg] = expDesign(cfg, displayFigs)
             nbTarget = numTargetsForEachBlock(iBlock);
 
             chosenPosition = setTargetPositionInSequence( ...
-                                                         NB_EVENTS_PER_BLOCK, ...
+                                                         NB_EVENTS_PER_BLOCK/2, ...
                                                          nbTarget, ...
-                                                         [1 NB_EVENTS_PER_BLOCK]);
+                                                         [1 NB_EVENTS_PER_BLOCK/2]);
 
             fixationTargets(iBlock, chosenPosition) = 1;
 
@@ -113,13 +113,16 @@ function [cfg] = expDesign(cfg, displayFigs)
     cfg.design.blockNames = assignConditions(cfg);
 
     cfg.design.nbBlocks = NB_BLOCKS;
-
-    cfg = setDirections(cfg);
+    
+   % target positions
+    cfg.design.fixationTargets = targetsRepeated(fixationTargets);%Target design matrix
+    
+    cfg = setDirections(cfg);%%%%original: cfg = setDirections(cfg) 
 
     speeds = ones(NB_BLOCKS, NB_EVENTS_PER_BLOCK) * cfg.dot.speedPixPerFrame;
     cfg.design.speeds = speeds;
 
-    cfg.design.fixationTargets = fixationTargets;
+%     cfg.design.fixationTargets = fixationTargets;
 
     %% Plot
     diplayDesign(cfg, displayFigs);

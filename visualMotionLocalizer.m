@@ -1,6 +1,9 @@
 % (C) Copyright 2018 Mohamed Rezk
 % (C) Copyright 2020 CPP visual motion localizer developpers
 
+% Direction 0 dots move right
+% Direction 180 dots move left
+% Direction 90-up, 270-down
 %% Visual motion localizer
 
 getOnlyPress = 1;
@@ -37,7 +40,7 @@ try
     %     if isfield(cfg.design, 'localizer') && strcmpi(cfg.design.localizer, 'MT_MST')
     %         [cfg] = expDesignMtMst(cfg);
     %     else
-    [cfg] = expDesign(cfg);
+    [cfg] = expDesignRepeated(cfg);
     %     end
 
     % Prepare for the output logfiles with all
@@ -77,7 +80,8 @@ try
         fprintf('\n - Running Block %.0f \n', iBlock);
 
         eyeTracker('Message', cfg, ['start_block-', num2str(iBlock)]);
-
+        dots=[];
+        previousEvent.target = 0;
         % For each event in the block
         for iEvent = 1:cfg.design.nbEventsPerBlock
 
@@ -98,8 +102,16 @@ try
             eyeTracker('Message', cfg, ...
                        ['start_trial-', num2str(iEvent), '_', thisEvent.trial_type]);
 
+            % we want to initialize the dots position when targets type is fixation cross
+            % or if this the first event of a target pair
+            if strcmp(cfg.target.type, 'static_repeat') && ...
+                    thisEvent.target == previousEvent.target
+            else
+                dots = [];
+            end
+                
             % play the dots and collect onset and duraton of the event
-            [onset, duration] = doDotMo(cfg, thisEvent, thisFixation);
+            [onset, duration, dots] = doDotMo(cfg, thisEvent, thisFixation, dots);
 
             thisEvent = preSaveSetup( ...
                                      thisEvent, ...
@@ -120,8 +132,22 @@ try
 
             eyeTracker('Message', cfg, ...
                        ['end_trial-', num2str(iEvent), '_', thisEvent.trial_type]);
-
-            waitFor(cfg, cfg.timing.ISI);
+                   
+                   previousEvent = thisEvent;
+                   
+%             if mod(iEvent,2) == 0
+%                 waitFor(cfg, cfg.timing.ISI);%%%% wait for ISI if event is even, that is after every second event
+%             elseif mod(iEvent,2) == 1
+%                 waitFor(cfg, 0) %%%% dont wait for ISI if event is odd, so setting the ISI =0
+%             end
+            
+            if iEvent ~= cfg.design.nbEventsPerBlock && mod(iEvent,2) == 0
+                    waitFor(cfg, cfg.timing.ISI);   %%%% wait for ISI if event is even, that is after every second event
+            elseif iEvent ~= cfg.design.nbEventsPerBlock &&  mod(iEvent,2) == 1
+                waitFor(cfg, 0)     %%%% dont wait for ISI if event is odd, so setting the ISI =0
+            elseif iEvent == cfg.design.nbEventsPerBlock
+                waitFor(cfg, 0)     %%%% No ISI after the last stimulus in one block
+            end
 
         end
 
@@ -138,7 +164,7 @@ try
 
         eyeTracker('Message', cfg, ['end_block-', num2str(iBlock)]);
 
-        waitFor(cfg, cfg.timing.IBI);
+        waitFor(cfg, cfg.timing.IBI(iBlock));
 
         % trigger monitoring
         triggerEvents = getResponse('check', cfg.keyboard.responseBox, cfg, ...
